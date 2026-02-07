@@ -33,6 +33,10 @@ class KalibracniKrivkyData():
         
         self.data_filtrovane = []
         self.osa_filtrovane = []
+        
+        self.alphaEMA = 1
+        self.oknoSG = 11
+        self.exponent = 4
                 
     def priradit_data(self,typ,jednotka):
         self.data_typ = typ
@@ -187,8 +191,32 @@ class KalibracniKrivkyData():
 
         print(f"[{self.__class__.__name__}] filtrovane (S-G): {self.data_filtrovane}")
         
-    def filtrovani_prumer_EMA(self, okno = 10):
+    def filtrovani_prumer_EMA(self):
+        # self.filtrovani_prumer()
+        # self.data_filtrovane = pd.Series(self.data_filtrovane).ewm(span=self.alphaEMA, adjust=False).mean().round(6).tolist()
+         # 1) EMA na syrová data
+        ema = self.data_y.ewm(alpha=self.alphaEMA, adjust=False).mean()
+
+        self.data_filtrovane = []
+        pocet_kroku = int(self.pocet_kroku)
+        pocet_vzorku_na_krok = int(self.pocet_vzorku_na_krok)
+
+        for i in range(pocet_kroku):
+            start = i * pocet_vzorku_na_krok
+            end = start + pocet_vzorku_na_krok
+            blok = ema[start:end]
+            prumer = blok.mean()
+            self.data_filtrovane.append(round(prumer, 6))
+
+        self.osa_filtrovane = self.blokove_hodnoty
         
-        self.filtrovani_prumer()
-        self.data_filtrovane = pd.Series(self.data_filtrovane).ewm(span=okno, adjust=False).mean().round(6).tolist()
         print(f"[{self.__class__.__name__}] filtrovane (prumer+EMA): {self.data_filtrovane}") 
+    
+    def filtrovani_prumer_EMA_SG(self):
+        self.filtrovani_prumer_EMA()
+
+        self.data_filtrovane = savgol_filter(self.data_filtrovane, window_length=self.oknoSG, polyorder=self.exponent)
+        print("alphaEMA:", self.alphaEMA, type(self.alphaEMA))
+        print("oknoSG:", self.oknoSG, type(self.oknoSG))
+        print("exponent:", self.exponent, type(self.exponent))
+        

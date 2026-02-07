@@ -2,8 +2,6 @@ from tkinter import *
 from tkinter import messagebox
 import threading
 import time
-import re
-import webbrowser
 from view.main_view import MainPage, OvladaniPage, KalibracePage, DataPage, KalibracniKrivkyPage
 from typing import TYPE_CHECKING
 from controller.kalibrace_controller import KalibraceController
@@ -35,6 +33,7 @@ class MainController():
         
         self.lock_1 = True #odemknuto
         self.lock_pohyb = True
+        self.filtrace_zapnuta = False
         
 #PRIRAZOVANI POHLEDU
     def set_main_page(self, main_page : 'MainPage'):
@@ -71,9 +70,6 @@ class MainController():
         self.view.add_frame("data", DataPage, self)
         self.view.add_frame("kalibrační křivky", KalibracniKrivkyPage, self)
         self.view.show_frame("main")
-
-    def otevrit_napovedu(self):
-        webbrowser.open('https://github.com/SimaCNC/Kalibrace-snimacu-malych-posunuti')
 
 #zablokovani vsech widgetu
     def blok_widgets(self, root : 'Tk'):
@@ -434,42 +430,59 @@ class MainController():
             self.kalibracni_krivky_page.update_data(pocet)
             print(f"[{self.__class__.__name__}] zmena kalibracnich krivek o {pocet}")
             
-    def M_C_vykresli_graf_filtrace(self, index, typ):
+    def M_C_vykresli_graf_filtrace(self, index, typ, filtr_EMA = None, filtr_SG = None, exponent_SG = None):
+        
         instance = self.kalibracni_krivky_page.original_data_instance[index]
         data = instance.data
+
+        if filtr_EMA:
+            data.alphaEMA = float(filtr_EMA)
+            print("alphaEMA:", data.alphaEMA, type(data.alphaEMA))
+        if filtr_SG:
+            data.oknoSG = int(filtr_SG)
+            print("oknoSG:", data.oknoSG, type(data.oknoSG))
+        if exponent_SG:
+            data.exponent = int(exponent_SG)
+            print("exponent:", data.exponent, type(data.exponent))
         
         if instance.soubor_vybrany == False: #pokud soubor nebyl vybrany, nelze filtrovat
             return        
         else:
             if typ == "Průměr":
                 data.filtrovani_prumer()
-                instance.graf_filtrovany_prumer_median()
+                instance.graf_filtrovany()
                 print(f"[{self.__class__.__name__}] FILTRACE PRUMER")
 
             elif typ == "Medián":
                 data.filtrovani_median()
-                instance.graf_filtrovany_prumer_median()
+                instance.graf_filtrovany()
                 print(f"[{self.__class__.__name__}] FILTRACE MEDIAN")
                 
             elif typ == "MA":
                 data.filtrovani_MA()
-                instance.graf_filtrovany_prumer_median()
+                instance.graf_filtrovany()
                 print(f"[{self.__class__.__name__}] FILTRACE MA")
                 
             elif typ == "EMA":
                 data.filtrovani_EMA()
-                instance.graf_filtrovany_prumer_median()
+                instance.graf_filtrovany()
                 print(f"[{self.__class__.__name__}] FILTRACE EMA")
                 
             elif typ == "S-G":
                 data.filtrovani_SG()
-                instance.graf_filtrovany_prumer_median()
+                instance.graf_filtrovany()
                 print(f"[{self.__class__.__name__}] FILTRACE SG")    
                 
             elif typ == "Průměr+EMA":
                 data.filtrovani_prumer_EMA()
-                instance.graf_filtrovany_prumer_median()
+                instance.graf_filtrovany()
                 print(f"[{self.__class__.__name__}] FILTRACE PRUMER+EMA")    
+                
+            elif typ == "Průměr+EMA+S-G":
+                data.filtrovani_prumer_EMA_SG()
+                instance.graf_filtrovany()
+                print(f"[{self.__class__.__name__}] FILTRACE PRUMER+EMA+SG")
+                
                 
             else:
                 print(f"[{self.__class__.__name__}] ZATIM NEPODPOROVANE")     

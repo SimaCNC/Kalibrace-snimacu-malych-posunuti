@@ -1,20 +1,9 @@
 import time
 import pandas as pd
-import re
-import csv
 import os
-from openpyxl import Workbook
 from openpyxl import load_workbook
-from openpyxl.styles import Font, PatternFill
-from openpyxl.utils import get_column_letter
-from openpyxl.chart import ScatterChart, Reference, LineChart
-from openpyxl.chart.axis import DateAxis
-from openpyxl.chart.series import Series
 from openpyxl.drawing.image import Image
-import matplotlib.pyplot as plt
-from view.main_view import MainPage, KalibracePage
 from datetime import datetime
-import math
 import shutil
 from tkinter import messagebox
 import win32com.client as win32

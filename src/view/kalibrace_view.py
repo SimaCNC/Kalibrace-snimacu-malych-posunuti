@@ -2,10 +2,8 @@ from tkinter import *
 from tkinter import ttk
 import inspect
 from typing import TYPE_CHECKING
-from tkinter import messagebox
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
-import numpy as np
 import os
 
 if TYPE_CHECKING:

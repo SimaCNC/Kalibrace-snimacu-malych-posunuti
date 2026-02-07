@@ -1,7 +1,6 @@
 from typing import TYPE_CHECKING
 import re
 import threading
-import time
 import math
 
 if TYPE_CHECKING:

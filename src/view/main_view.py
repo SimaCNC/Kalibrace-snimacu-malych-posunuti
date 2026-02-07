@@ -5,8 +5,6 @@ from tkinter import messagebox
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from datetime import datetime
 import matplotlib.pyplot as plt
-import numpy as np
-import inspect
 import webbrowser
 from view.kalibrace_view import KalibracniOkno
 from model.KalibracniKrivky_model import KalibracniKrivkyData
@@ -16,7 +14,6 @@ if TYPE_CHECKING:
     from model.Piezo_model import Piezo_model
     from model.MCU_model import MCU_model
     from controller.main_controller import MainController
-    from controller.kalibrace_controller import KalibraceController
     
 #-----------------------------------------------------     
 #KORENOVE OKNO - VYTVORENI INSTANCE TK V ATRIBUTU ROOT    
@@ -952,6 +949,10 @@ class OriginalDataGUI(LabelFrame):
         self.frame_filtrace = FiltraceDatGUI(self, controller=self.controller, poradi_instance=self.poradi_instance)
         self.frame_graf2 = Frame(self, bg="white") 
         
+        #oblast pro lookup tabulku
+        self.frame_lookuptable = LookupTabulkaGUI(self, controller=self.controller, poradi_instance=self.poradi_instance)
+        
+        
         self.publish()
         
     def publish(self):
@@ -964,6 +965,7 @@ class OriginalDataGUI(LabelFrame):
         self.BTN_otevrit.grid(row=1, column=1, padx=5, pady=5, sticky="nw")
         self.frame_filtrace.grid(row=1, column=0, padx=5, pady=5, sticky="nw")
         self.frame_graf2.grid(row=1, column=1, padx=0, pady=0, sticky="nw")         
+        self.frame_lookuptable.grid(row=2, column=0, padx=5, pady=5, sticky="nw")
     
     def graf(self):
         if not hasattr(self, 'canvas'):
@@ -984,38 +986,54 @@ class OriginalDataGUI(LabelFrame):
         self.ax2.clear()
         self.ax2.grid(True, which='both', linestyle='--', alpha=0.5)
         self.ax2.set_title("Průběh teploty")
-        self.ax2.set_xlabel("čas t(s)")
+        self.ax2.set_xlabel("Čas t(s)")
         self.ax2.set_ylabel("Teplota (°C)")
         self.ax2.step(self.data.data_cas, self.data.data_teplota, where = 'post', color='red')
+        y2 = self.data.data_teplota
+        y_min2 = min(y2)
+        y_max2 = max(y2)
+        rozsah2 = y_max2 - y_min2
+        self.ax2.set_ylim(y_min2 -  5 * rozsah2, y_max2 +  5 * rozsah2)
         # self.ax2.plot(self.data.data_cas, self.data.data_teplota, 'o', markersize=1, color='red')
         
         self.ax3.clear()
         self.ax3.grid(True, which='both', linestyle='--', alpha=0.5)
-        self.ax3.set_title("Průběh tlak")
-        self.ax3.set_xlabel("čas t(s)")
+        self.ax3.set_title("Průběh tlaku")
+        self.ax3.set_xlabel("Čas t(s)")
         self.ax3.set_ylabel("Tlak (Pa)")
         self.ax3.step(self.data.data_cas, self.data.data_tlak, where = 'post', color='red')
+        y3 = self.data.data_tlak
+        y_min3 = min(y3)
+        y_max3 = max(y3)
+        rozsah3 = y_max3 - y_min3
+        self.ax3.set_ylim(y_min3 - 5 * rozsah3, y_max3 + 5 * rozsah3)
         # self.ax3.plot(self.data.data_cas, self.data.data_tlak, 'o', markersize=1, color='red')
         
         self.ax4.clear()
         self.ax4.grid(True, which='both', linestyle='--', alpha=0.5)
-        self.ax4.set_title("Průběh vlhkost")
-        self.ax4.set_xlabel("čas t(s)")
+        self.ax4.set_title("Průběh vlhkosti")
+        self.ax4.set_xlabel("Čas t(s)")
         self.ax4.set_ylabel("Vlhkost (%)")
         self.ax4.step(self.data.data_cas, self.data.data_vlhkost, where = 'post', color='red')
+        self.ax4.set_ylim(0, 100)
         # self.ax4.plot(self.data.data_cas, self.data.data_vlhkost, 'o', markersize=1, color='red')
         
         self.ax5.clear()
         self.ax5.grid(True, which='both', linestyle='--', alpha=0.5)
         self.ax5.set_title("Průběh osvětlení")
-        self.ax5.set_xlabel("čas t(s)")
+        self.ax5.set_xlabel("Čas t(s)")
         self.ax5.set_ylabel("Osvětlení (lux)")
         self.ax5.step(self.data.data_cas, self.data.data_osvetleni, where = 'post', color='red')
+        y5 = self.data.data_osvetleni
+        y_min5 = min(y5)
+        y_max5 = max(y5)
+        rozsah5 = y_max5 - y_min5
+        self.ax5.set_ylim(y_min5 - 5 * rozsah5, y_max5 + 5 * rozsah5)
         # self.ax5.plot(self.data.data_cas, self.data.data_osvetleni, 'o', markersize=1, color='red')
 
         self.canvas.draw()
         
-    def graf_filtrovany_prumer_median(self):
+    def graf_filtrovany(self):
         if not hasattr(self, 'canvas_filtrace'):
             self.fig_filtrace, self.ax_filtrace = plt.subplots(figsize=(12,5))
             self.canvas_filtrace = FigureCanvasTkAgg(self.fig_filtrace, master=self.frame_graf2)
@@ -1027,7 +1045,9 @@ class OriginalDataGUI(LabelFrame):
         self.ax_filtrace.set_xlabel("Vzdálenost (um)")
         self.ax_filtrace.set_ylabel(f"{self.data.data_typ} {self.data.data_jednotka}")
         self.ax_filtrace.grid(True, which='both', linestyle='--', alpha=0.5)
-        self.ax_filtrace.plot(self.data.osa_filtrovane,self.data.data_filtrovane,linestyle = 'solid', color='red')
+        self.ax_filtrace.plot(self.data.osa_filtrovane,self.data.data_filtrovane,linestyle = 'solid', color='red', label="Filtrované data")
+        self.ax_filtrace.plot(self.data.data_x,self.data.data_y, 'o', markersize=0.1, color="#828486", label = "Originální data")
+        self.ax_filtrace.legend()
         self.fig_filtrace.subplots_adjust(left=0.18, right=0.95, top=0.9, bottom=0.15)
         self.ax_filtrace.yaxis.labelpad = 20
         
@@ -1047,13 +1067,13 @@ class FiltraceDatGUI(LabelFrame):
         self.poradi_instance = poradi_instance
         self.frame_popisky = Frame(self, bg="white")
         #Pokud byla vybrana pracovni slozka, tak se automaticky vybere stejna pro filtraci - lze zmenit dale
-        self.metody_filtrace = ["Průměr", "Medián", "MA", "EMA", "S-G","Průměr+EMA"]
+        self.metody_filtrace = ["Průměr", "Medián", "MA", "EMA", "S-G","Průměr+EMA", "Průměr+EMA+S-G"]
         self.label_metoda_filtrace = Label(self.frame_popisky, text="Metoda filtrace :", bg="white", width=20, anchor="w")
         self.vybrana_filtrace = StringVar()
         self.vybrana_filtrace.set("-")
         self.drop_filtrace = OptionMenu(self.frame_popisky, self.vybrana_filtrace, *self.metody_filtrace)
         self.drop_filtrace.config(width=18)
-        self.BTN_filtrace = Button(self.frame_popisky, text="FILTRACE", width=18, state="active", command=lambda: self.controller.M_C_vykresli_graf_filtrace(self.poradi_instance, self.vybrana_filtrace.get()))
+        self.BTN_filtrace = Button(self.frame_popisky, text="FILTRACE", width=18, state="active", command=lambda: self.BTN_filtrace_prikaz())
     
         self.publish()
         
@@ -1062,3 +1082,91 @@ class FiltraceDatGUI(LabelFrame):
         self.label_metoda_filtrace.grid(row=1, column=0, padx=5, pady=5, sticky="nw")
         self.drop_filtrace.grid(row=1, column=1, padx=5, pady=5, sticky="nw")
         self.BTN_filtrace.grid(row=1, column=2, padx=5, pady=5, sticky="nw")
+        
+    def je_int(self, vstup):
+        if vstup in (""):
+            return True
+        try:
+            int(vstup)
+            return True
+        except ValueError:
+            return False
+    
+    def je_float(self, vstup):
+        if vstup in (""):
+            return True
+        try:
+            float(vstup)
+            return True
+        except ValueError:
+            return False
+        
+    def BTN_filtrace_prikaz(self):
+        self.controller.filtrace_zapnuta = True
+        
+        self.controller.M_C_vykresli_graf_filtrace(self.poradi_instance, self.vybrana_filtrace.get())
+        validace_float = (self.controller.root.register(self.je_float), "%P") 
+        validace_int = (self.controller.root.register(self.je_int), "%P")
+
+
+        for widget in self.frame_popisky.winfo_children():
+            info = widget.grid_info()
+            if info and int(info.get("row", 0)) >= 2:
+                widget.grid_forget()
+
+
+        if self.vybrana_filtrace.get() == "Průměr+EMA":
+            self.label_alphaEMA = Label(self.frame_popisky, text="Alfa exponenciálního filtru:", bg="white", width=20, anchor="w")
+            self.entry_filtr_EMA = Entry(self.frame_popisky, width=20, state="normal", validate="key", validatecommand=validace_float)
+            self.entry_filtr_EMA.bind("<Return>", lambda _: self.controller.M_C_vykresli_graf_filtrace(
+                self.poradi_instance,
+                self.vybrana_filtrace.get(),
+                filtr_EMA=self.entry_filtr_EMA.get()))
+
+            self.BTN_filtr = Button(self.frame_popisky, text="Aktualizace", width=18, command=lambda: self.controller.M_C_vykresli_graf_filtrace(
+                self.poradi_instance,
+                self.vybrana_filtrace.get(),
+                filtr_EMA=self.entry_filtr_EMA.get()))
+
+            self.label_alphaEMA.grid(row=2, column=0, padx=5, pady=5, sticky="nw")
+            self.entry_filtr_EMA.grid(row=2, column=1, padx=5, pady=5, sticky="nw")
+            self.BTN_filtr.grid(row=2, column=2, padx=5, pady=5, sticky="nw")
+
+        elif self.vybrana_filtrace.get() == "Průměr+EMA+S-G":
+            self.label_alphaEMA = Label(self.frame_popisky, text="Alfa exponenciálního filtru:", bg="white", width=20, anchor="w")
+            self.label_filtr_SG = Label(self.frame_popisky, text="Okno Savgol-Gola filtru:", bg="white", width=20, anchor="w")
+            self.label_exponent_SG = Label(self.frame_popisky, text="Exponent Savgol-Gola filtru:", bg="white", width=20, anchor="w")
+
+            self.entry_filtr_EMA = Entry(self.frame_popisky, width=30, state="normal", validate="key", validatecommand=validace_float)
+            self.entry_filtr_SG = Entry(self.frame_popisky, width=30, state="normal", validate="key", validatecommand=validace_float)
+            self.entry_exponent_SG = Entry(self.frame_popisky, width=30, state="normal", validate="key", validatecommand=validace_int)
+
+            for entry in [self.entry_filtr_EMA, self.entry_filtr_SG, self.entry_exponent_SG]:
+                entry.bind("<Return>", lambda _: self.controller.M_C_vykresli_graf_filtrace(
+                    self.poradi_instance,
+                    self.vybrana_filtrace.get(),
+                    filtr_EMA=self.entry_filtr_EMA.get(),
+                    filtr_SG=self.entry_filtr_SG.get(),
+                    exponent_SG=self.entry_exponent_SG.get()))
+
+            self.BTN_filtr = Button(self.frame_popisky, text="Aktualizace", width=18, command=lambda: self.controller.M_C_vykresli_graf_filtrace(
+                self.poradi_instance,
+                self.vybrana_filtrace.get(),
+                filtr_EMA=self.entry_filtr_EMA.get(),
+                filtr_SG=self.entry_filtr_SG.get(),
+                exponent_SG=self.entry_exponent_SG.get()))
+
+            self.label_alphaEMA.grid(row=2, column=0, padx=5, pady=5, sticky="nw")
+            self.entry_filtr_EMA.grid(row=2, column=1, padx=5, pady=5, sticky="nw")
+            self.label_filtr_SG.grid(row=3, column=0, padx=5, pady=5, sticky="nw")
+            self.entry_filtr_SG.grid(row=3, column=1, padx=5, pady=5, sticky="nw")
+            self.label_exponent_SG.grid(row=4, column=0, padx=5, pady=5, sticky="nw")
+            self.entry_exponent_SG.grid(row=4, column=1, padx=5, pady=5, sticky="nw")
+            self.BTN_filtr.grid(row=2, column=2, padx=5, pady=5, sticky="nw")
+            
+            
+class LookupTabulkaGUI(LabelFrame):
+    
+    
+        
+            
