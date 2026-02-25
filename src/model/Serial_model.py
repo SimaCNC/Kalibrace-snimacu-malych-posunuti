@@ -21,7 +21,7 @@ class SerialCtrl():
     def SerialOpen(self, port, baud):
         try:
             if self.ser is None or not self.ser.is_open:
-                self.ser = serial.Serial(port=port, baudrate=baud, timeout=0.1)
+                self.ser = serial.Serial(port=port, baudrate=baud, timeout=0.05) #TIMEOUT UPRAVEN z 0,1
                 self.status = True
                 print(f"Port {port} byl otevren s baudratem {baud}")
                 
@@ -87,7 +87,7 @@ class SerialCtrl():
                     print(f"[stream] NALEZENO V PRIJATE MSG: {msg_received}, Z OCEKAVANE {expect_regex}")                   
                     if callback_fun:
                         callback_fun(msg_received)
-                        time.sleep(0.01)
+                        time.sleep(0.001)
                     self.lock = True #odemknuto
                     break #konec vlakna
                 else:

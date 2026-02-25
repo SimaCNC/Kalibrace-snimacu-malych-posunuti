@@ -2,14 +2,15 @@ from tkinter import *
 from tkinter import messagebox
 import threading
 import time
-from view.main_view import MainPage, OvladaniPage, KalibracePage, DataPage, KalibracniKrivkyPage
+from view.main_view import MainPage, OvladaniPage, KalibracePage, DataPage, KalibracniKrivkyPage, TestPage
 from typing import TYPE_CHECKING
 from controller.kalibrace_controller import KalibraceController
 from model.Zpracovani_model import Zpracovani_model
 from model.KalibracniKrivky_model import KalibracniKrivkyData
+from model.LUT_model import LUT_model
 
 if TYPE_CHECKING:
-    from view.main_view import RootGUI, ComGUI, PiezoGUI,McuGUI, StavGUI, Typ_protokolGUI, KalibraceGUI, RazitkoGUI, DataGUI, InformaceKalibraceGUI, ExcelGUI, OkolniPodminkyGUI, OriginalDataGUI, FiltraceDatGUI
+    from view.main_view import RootGUI, ComGUI, PiezoGUI,McuGUI, StavGUI, Typ_protokolGUI, KalibraceGUI, RazitkoGUI, DataGUI, InformaceKalibraceGUI, ExcelGUI, OkolniPodminkyGUI 
     from model.Piezo_model import Piezo_model
     from model.MCU_model import MCU_model
     import tkinter as Tk
@@ -33,7 +34,8 @@ class MainController():
         
         self.lock_1 = True #odemknuto
         self.lock_pohyb = True
-        self.filtrace_zapnuta = False
+
+        self.LUT = LUT_model(controller=self)
         
 #PRIRAZOVANI POHLEDU
     def set_main_page(self, main_page : 'MainPage'):
@@ -62,15 +64,19 @@ class MainController():
     def set_KalibracniKrivky_page(self, kalibrancni_krivky_page : 'KalibracniKrivkyPage'):
         self.kalibracni_krivky_page = kalibrancni_krivky_page
         
+    def set_test_page(self, test_page : 'TestPage'):
+        self.test_page = test_page    
+        
 #Vytvoreni pohledu a definovani prvniho okna - Pripojeni = main      
     def setup_gui(self):
         self.view.add_frame("main", MainPage, self, self.piezo_model, self.mcu_model)
         self.view.add_frame("ovladani", OvladaniPage, self, self.piezo_model, self.mcu_model)
         self.view.add_frame("kalibrace", KalibracePage, self, self.piezo_model, self.mcu_model)
         self.view.add_frame("data", DataPage, self)
+        self.view.add_frame("test", TestPage, self)
         self.view.add_frame("kalibrační křivky", KalibracniKrivkyPage, self)
         self.view.show_frame("main")
-
+        
 #zablokovani vsech widgetu
     def blok_widgets(self, root : 'Tk'):
         for widget in root.winfo_children():
@@ -179,7 +185,7 @@ class MainController():
             # self.piezo_model.is_homed = True
             # self.M_C_precti_polohu()
             time.sleep(0.2)
-            self.piezo_model.piezo_serial.send_msg_simple(msg="SR x0.002 y0.002 z0.002;\n")
+            self.piezo_model.piezo_serial.send_msg_simple(msg="SR x0.004 y0.004 z0.004;\n") #mozna by stacilo dat vetsi hodnotu - tedka to jsou um
             time.sleep(0.2)
             self.piezo_model.piezo_serial.send_msg_simple(msg="GT x0 y0 z0;\n")
             time.sleep(0.2)
@@ -296,6 +302,109 @@ class MainController():
             
         self.piezo_model.msg_odpoved(callback_fun=callback_po_odpovedi_piezo)
         
+    # def M_C_piezo_automatika(self):
+
+    #     if self.piezo_model.automatika:
+    #         self.piezo_model.automatika = False
+    #         self.piezo_gui.BTN_automatika.config(text="START", bg="#0DD317")
+    #         print(f"{self.__class__.__name__} STOP automatika")
+    #         time.sleep(0.5)
+    #         self.piezo_model.nastav_zrychleni(1000)
+    #         time.sleep(0.5)
+    #         self.piezo_model.nastav_zpomaleni(1000)
+    #         time.sleep(0.5)
+    #         self.piezo_model.piezo_serial.send_msg_simple(msg="SR x0.004 y0.004 z0.004;\n") #mozna by stacilo dat vetsi hodnotu - tedka to jsou um
+    #         time.sleep(0.5)
+    #         return
+
+    #     # START
+    #     self.piezo_model.automatika = True
+    #     self.piezo_gui.BTN_automatika.config(text="STOP", bg="#E22B2B")
+    #     print(f"{self.__class__.__name__} START automatika")
+    #     time.sleep(0.5)
+    #     self.piezo_model.nastav_zrychleni(3000)
+    #     time.sleep(0.5)
+    #     self.piezo_model.nastav_zpomaleni(3000)
+    #     time.sleep(0.5)
+    #     self.piezo_model.piezo_serial.send_msg_simple(msg="SR x1 y1 z1;\n") #mozna by stacilo dat vetsi hodnotu - tedka to jsou um
+    #     time.sleep(0.5)
+
+    #     def automatika_pohyb():
+    #         muzes_minus = True
+    #         muzes_plus = False
+
+    #         while self.piezo_model.automatika:
+
+    #             if self.lock_pohyb:
+                    
+    #                 if muzes_minus:
+    #                     self.M_C_pohyb_piezo("y-")
+    #                     muzes_minus = False
+    #                     muzes_plus = True
+
+    #                 elif muzes_plus:
+    #                     self.M_C_pohyb_piezo("y")
+    #                     muzes_minus = True
+    #                     muzes_plus = False
+
+    #             time.sleep(0.01)
+
+    #     self.t1 = threading.Thread(target=automatika_pohyb, daemon=True)
+    #     self.t1.start()
+        
+    def M_C_piezo_automatika(self):
+        if self.piezo_model.automatika:
+            # STOP
+            self.piezo_model.automatika = False
+            self.piezo_gui.BTN_automatika.config(text="START", bg="#0DD317")
+            print(f"{self.__class__.__name__} STOP automatika")
+            time.sleep(0.5)
+            self.piezo_model.nastav_zrychleni(1000)
+            time.sleep(0.5)
+            self.piezo_model.nastav_zpomaleni(1000)
+            time.sleep(0.5)
+            self.piezo_model.piezo_serial.send_msg_simple(msg="SR x0.004 y0.004 z0.004;\n")
+            time.sleep(0.5)
+            return
+        # START
+        self.piezo_model.automatika = True
+        self.piezo_gui.BTN_automatika.config(text="STOP", bg="#E22B2B")
+        print(f"{self.__class__.__name__} START automatika")
+        time.sleep(0.5)
+        self.piezo_model.nastav_zrychleni(3000)
+        time.sleep(0.5)
+        self.piezo_model.nastav_zpomaleni(3000)
+        time.sleep(0.5)
+        self.piezo_model.piezo_serial.send_msg_simple(msg="SR x1 y1 z1;\n")
+        time.sleep(0.5)
+        #pokud uz bezi nespusti se nove
+        if hasattr(self, "t1") and self.t1.is_alive():
+            print("Automatika bezi - nespusti se nove")
+            return
+        def automatika_pohyb():
+            muzes_minus = True
+            muzes_plus = False
+            while self.piezo_model.automatika:
+            
+                if self.lock_pohyb:
+                    self.lock_pohyb = False  # jednorázové spuštění
+                    if muzes_minus:
+                        self.M_C_pohyb_piezo("y-")
+                        muzes_minus = False
+                        muzes_plus = True
+                    elif muzes_plus:
+                        self.M_C_pohyb_piezo("y")
+                        muzes_minus = True
+                        muzes_plus = False
+                time.sleep(0.01)
+        self.t1 = threading.Thread(target=automatika_pohyb, daemon=True)
+        self.t1.start()
+                    
+            
+            
+            
+            
+            
     #deaktivovani tlacitek pri pohybu - mozna implementovat do view a pak jen funkce volat z controlleru    
     def M_C_disable_piezo_buttons(self):
         self.piezo_gui.disable_piezo_buttons()
@@ -434,6 +543,7 @@ class MainController():
         
         instance = self.kalibracni_krivky_page.original_data_instance[index]
         data = instance.data
+        instance.filtrace_zapnuta = True
 
         if filtr_EMA:
             data.alphaEMA = float(filtr_EMA)
@@ -486,3 +596,16 @@ class MainController():
                 
             else:
                 print(f"[{self.__class__.__name__}] ZATIM NEPODPOROVANE")     
+                
+#LOOKUP TABULKA
+
+    def M_C_vytvorit_lookuptable(self,index,velikost_LUT):
+        
+        instance = self.kalibracni_krivky_page.original_data_instance[index]
+        data = instance.data
+        
+        if (instance.filtrace_zapnuta == False):
+            ErrorMsg = f"Nejprve je nutné provést filtraci dat"
+            messagebox.showerror("CHYBA", ErrorMsg)  
+        else:
+            self.LUT.vytvorit_LUT(data.osa_filtrovane, data.data_filtrovane, int(velikost_LUT))

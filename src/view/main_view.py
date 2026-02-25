@@ -47,6 +47,7 @@ class RootGUI():
         self.menu.add_command(label="Kalibrace", command=lambda: self.show_frame("kalibrace"))
         self.menu.add_command(label="Data", command=lambda : self.show_frame("data"))
         self.menu.add_command(label="Kalibrační křivky", command=lambda : self.show_frame("kalibrační křivky"))
+        self.menu.add_command(label="Test", command= lambda : self.show_frame("test"))
         self.menu.add_command(label="Nápověda", command=lambda : webbrowser.open('https://github.com/SimaCNC/Kalibrace-snimacu-malych-posunuti'))
         self.menu.add_command(label="Konec", command=self.window_exit)
         
@@ -290,6 +291,8 @@ class PiezoGUI(LabelFrame):
         
         
     def publish_PiezoGUI_home_done(self):
+        validace_float = (self.controller.root.register(self.je_float), "%P") #validace dat na float
+        
         #ovladani
         self.label_piezo_precist_polohu = Label(self.frame_piezo_ovladani_leve, text="Přečíst aktuální polohu:", bg= "white", width=20, anchor="w")
         self.BTN_piezo_precist_polohu = Button(self.frame_piezo_ovladani_leve, text="POLOHA", width=10, command=self.controller.M_C_precti_polohu)
@@ -304,8 +307,12 @@ class PiezoGUI(LabelFrame):
         self.BTN_kalibracni_poloha_piezo = Button(self.frame_piezo_ovladani_leve, text="MAX Y+", width=10, command=self.controller.M_C_kalibracni_poloha_piezo)
         self.piezo_model.nastav_rychlost(4000)
         
+        #AUGOMATICKE POLOHOVANI - KMITANI
+        self.label_automatika = Label(self.frame_piezo_ovladani_leve, text="START/STOP auto pohyb:", bg="white", width=20, anchor="w")
+        self.BTN_automatika = Button(self.frame_piezo_ovladani_leve, text="START", width=10, command= self.controller.M_C_piezo_automatika, bg= "#0DD317") #ZAPNE AUTOMATICKE POHYBOVANI S PIEZEM
+        
+        
         #ovladani - pohyb
-        validace_float = (self.controller.root.register(self.je_float), "%P") #validace dat na float
         self.label_piezo_pohyb = Label(self.frame_piezo_ovladani_prave, text="Nastavit velikost pohybu v μm:", bg="white", width=25, anchor="w")
         self.entry_piezo_pohyb = Entry(self.frame_piezo_ovladani_prave, width=10,validate="key" ,validatecommand=validace_float)
         self.entry_piezo_pohyb.bind("<Return>", lambda _ : self.controller.M_C_nastav_pohyb_piezo(self.entry_piezo_pohyb.get()))
@@ -356,6 +363,9 @@ class PiezoGUI(LabelFrame):
         self.drop_rychlost_piezo.config(width=6, padx=5, pady=5)
         self.label_kalibracni_poloha_piezo.grid(row=4, column=0, padx=5, pady=5, sticky="NW")
         self.BTN_kalibracni_poloha_piezo.grid(row=4, column=1, padx=5, pady=5, sticky="NW")
+        self.label_automatika.grid(row=5, column=0, padx=5, pady=5, sticky="NW")
+        self.BTN_automatika.grid(row=5, column=1, padx=5, pady=5, sticky="NW")
+        
         
         #ovladani - pohyb
         self.label_piezo_pohyb.grid(row=0, column=0, padx=5, pady=5, sticky="NW")
@@ -878,9 +888,9 @@ class KalibracniKrivkyPage(ScrollableFrame):
         self.instance_pocet = 0
         self.original_data_pocet : LabelFrame = OriginalDataPocet(self.scrollable_frame, self.controler)
         self.original_data_pocet.grid(row=0, column=0, padx=5, pady=5, sticky="nw")
-        
         self.update_data(1)           
         self.controler.set_KalibracniKrivky_page(self)
+
         
     def update_data(self, inkrement):
         if not (1 <= self.instance_pocet + inkrement <= 10):
@@ -939,20 +949,23 @@ class OriginalDataGUI(LabelFrame):
         self.Entry_pracovni_soubor.config(state="readonly")
         self.BTN_pracovni_soubor = Button(self.frame_popisky, text="SOUBOR", width=18, state="active", command= lambda: self.controller.M_C_vybrat_pracovni_soubor(self.poradi_instance))
         self.soubor_vybrany = False
+        self.filtrace_zapnuta = False
         
         #oblast pro graf
         self.frame_graf = Frame(self, bg="white")    
         self.label_otevrit = Label(self.frame_popisky, text="Vykreslit data:", bg="white", width=20, anchor="w")
         self.BTN_otevrit = Button(self.frame_popisky, text="VYKRESLIT", width=18, state="active", command = lambda: self.controller.M_C_vykresli_graf(self.poradi_instance))     
         
+        self.frame_left = Frame(self, bg="white")
+        self.frame_right = Frame(self, bg="white")  
+        
         #oblast pro filtraci
-        self.frame_filtrace = FiltraceDatGUI(self, controller=self.controller, poradi_instance=self.poradi_instance)
-        self.frame_graf2 = Frame(self, bg="white") 
+        self.frame_filtrace = FiltraceDatGUI(self.frame_left, controller=self.controller, poradi_instance=self.poradi_instance)
+        self.frame_graf2 = Frame(self.frame_right, bg="white") 
         
         #oblast pro lookup tabulku
-        self.frame_lookuptable = LookupTabulkaGUI(self, controller=self.controller, poradi_instance=self.poradi_instance)
-        
-        
+        self.frame_lookuptable = LookupTabulkaGUI(self.frame_left, controller=self.controller, poradi_instance=self.poradi_instance)
+    
         self.publish()
         
     def publish(self):
@@ -963,10 +976,14 @@ class OriginalDataGUI(LabelFrame):
         self.frame_graf.grid(row=0, column=1, padx=0, pady=0, sticky="nw")  
         self.label_otevrit.grid(row=1, column=0, padx=5, pady=5, sticky="nw")
         self.BTN_otevrit.grid(row=1, column=1, padx=5, pady=5, sticky="nw")
-        self.frame_filtrace.grid(row=1, column=0, padx=5, pady=5, sticky="nw")
-        self.frame_graf2.grid(row=1, column=1, padx=0, pady=0, sticky="nw")         
-        self.frame_lookuptable.grid(row=2, column=0, padx=5, pady=5, sticky="nw")
-    
+        
+        self.frame_left.grid(row=1, column=0, padx=5, pady=5, sticky="nw")
+        self.frame_filtrace.grid(row=0, column=0, padx=5, pady=5, sticky="nw")
+        self.frame_lookuptable.grid(row=1, column=0, padx=5, pady=5, sticky="nw")
+        
+        self.frame_right.grid(row=1, column=1, padx=5, pady=5, sticky="nw")
+        self.frame_graf2.grid(row=0, column=0, padx=0, pady=0, sticky="nw")        
+        
     def graf(self):
         if not hasattr(self, 'canvas'):
             self.fig, (self.ax1, self.ax2, self.ax3, self.ax4, self.ax5) = plt.subplots(1, 5, figsize=(30,5))
@@ -1068,13 +1085,12 @@ class FiltraceDatGUI(LabelFrame):
         self.frame_popisky = Frame(self, bg="white")
         #Pokud byla vybrana pracovni slozka, tak se automaticky vybere stejna pro filtraci - lze zmenit dale
         self.metody_filtrace = ["Průměr", "Medián", "MA", "EMA", "S-G","Průměr+EMA", "Průměr+EMA+S-G"]
-        self.label_metoda_filtrace = Label(self.frame_popisky, text="Metoda filtrace :", bg="white", width=20, anchor="w")
+        self.label_metoda_filtrace = Label(self.frame_popisky, text="Metoda filtrace :", bg="white", width=25, anchor="w")
         self.vybrana_filtrace = StringVar()
         self.vybrana_filtrace.set("-")
         self.drop_filtrace = OptionMenu(self.frame_popisky, self.vybrana_filtrace, *self.metody_filtrace)
         self.drop_filtrace.config(width=18)
         self.BTN_filtrace = Button(self.frame_popisky, text="FILTRACE", width=18, state="active", command=lambda: self.BTN_filtrace_prikaz())
-    
         self.publish()
         
     def publish(self):
@@ -1102,7 +1118,6 @@ class FiltraceDatGUI(LabelFrame):
             return False
         
     def BTN_filtrace_prikaz(self):
-        self.controller.filtrace_zapnuta = True
         
         self.controller.M_C_vykresli_graf_filtrace(self.poradi_instance, self.vybrana_filtrace.get())
         validace_float = (self.controller.root.register(self.je_float), "%P") 
@@ -1116,8 +1131,8 @@ class FiltraceDatGUI(LabelFrame):
 
 
         if self.vybrana_filtrace.get() == "Průměr+EMA":
-            self.label_alphaEMA = Label(self.frame_popisky, text="Alfa exponenciálního filtru:", bg="white", width=20, anchor="w")
-            self.entry_filtr_EMA = Entry(self.frame_popisky, width=20, state="normal", validate="key", validatecommand=validace_float)
+            self.label_alphaEMA = Label(self.frame_popisky, text="Alfa exponenciálního filtru:", bg="white", width=25, anchor="w")
+            self.entry_filtr_EMA = Entry(self.frame_popisky, width=15, state="normal", validate="key", validatecommand=validace_float)
             self.entry_filtr_EMA.bind("<Return>", lambda _: self.controller.M_C_vykresli_graf_filtrace(
                 self.poradi_instance,
                 self.vybrana_filtrace.get(),
@@ -1133,13 +1148,13 @@ class FiltraceDatGUI(LabelFrame):
             self.BTN_filtr.grid(row=2, column=2, padx=5, pady=5, sticky="nw")
 
         elif self.vybrana_filtrace.get() == "Průměr+EMA+S-G":
-            self.label_alphaEMA = Label(self.frame_popisky, text="Alfa exponenciálního filtru:", bg="white", width=20, anchor="w")
-            self.label_filtr_SG = Label(self.frame_popisky, text="Okno Savgol-Gola filtru:", bg="white", width=20, anchor="w")
-            self.label_exponent_SG = Label(self.frame_popisky, text="Exponent Savgol-Gola filtru:", bg="white", width=20, anchor="w")
+            self.label_alphaEMA = Label(self.frame_popisky, text="Alfa exponenciálního filtru:", bg="white", width=25, anchor="w")
+            self.label_filtr_SG = Label(self.frame_popisky, text="Okno Savgol-Gola filtru:", bg="white", width=25, anchor="w")
+            self.label_exponent_SG = Label(self.frame_popisky, text="Exponent Savgol-Gola filtru:", bg="white", width=25, anchor="w")
 
-            self.entry_filtr_EMA = Entry(self.frame_popisky, width=30, state="normal", validate="key", validatecommand=validace_float)
-            self.entry_filtr_SG = Entry(self.frame_popisky, width=30, state="normal", validate="key", validatecommand=validace_float)
-            self.entry_exponent_SG = Entry(self.frame_popisky, width=30, state="normal", validate="key", validatecommand=validace_int)
+            self.entry_filtr_EMA = Entry(self.frame_popisky, width=15, state="normal", validate="key", validatecommand=validace_float)
+            self.entry_filtr_SG = Entry(self.frame_popisky, width=15, state="normal", validate="key", validatecommand=validace_float)
+            self.entry_exponent_SG = Entry(self.frame_popisky, width=15, state="normal", validate="key", validatecommand=validace_int)
 
             for entry in [self.entry_filtr_EMA, self.entry_filtr_SG, self.entry_exponent_SG]:
                 entry.bind("<Return>", lambda _: self.controller.M_C_vykresli_graf_filtrace(
@@ -1164,9 +1179,57 @@ class FiltraceDatGUI(LabelFrame):
             self.entry_exponent_SG.grid(row=4, column=1, padx=5, pady=5, sticky="nw")
             self.BTN_filtr.grid(row=2, column=2, padx=5, pady=5, sticky="nw")
             
-            
+#frame lookup tabulka           
 class LookupTabulkaGUI(LabelFrame):
+    def __init__(self, parent, controller : 'MainController', poradi_instance):
+        super().__init__(parent, text='Lookup tabulka', padx=5, pady=5, bg="white", bd=5, relief="groove")
+        self.controller = controller
+        self.poradi_instance = poradi_instance
+        self.frame_popisky = Frame(self, bg="white")
+        
+        validace_float = (self.controller.root.register(self.je_float), "%P") 
+        validace_int = (self.controller.root.register(self.je_int), "%P")
+
+        self.label_velikost_tabulky = Label(self.frame_popisky, text="Velikost tabulky:", bg="white", width=25, anchor="w")
+        self.entry_velikost_tabulky = Entry(self.frame_popisky, width=15, state="normal", validate="key", validatecommand=validace_int)
+        self.BTN_ulozit_tabulku = Button(self.frame_popisky, text="VYTVOŘIT", width=18, command= lambda : self.controller.M_C_vytvorit_lookuptable(self.poradi_instance,
+                                                                                                                                                   self.entry_velikost_tabulky.get()))
+        
+        self.publish()
+
+    def publish(self):
+        self.frame_popisky.grid(row=0, column=0, padx=5, pady=5, sticky="nw")
+        self.label_velikost_tabulky.grid(row=0, column=0, padx=5, pady=5, sticky="nw")
+        self.entry_velikost_tabulky.grid(row=0, column=1, padx=5, pady=5, sticky="nw")
+        self.BTN_ulozit_tabulku.grid(row=0, column=2, padx=5, pady=5, sticky="nw")
+
+    def je_int(self, vstup):
+        if vstup in (""):
+            return True
+        try:
+            int(vstup)
+            return True
+        except ValueError:
+            return False
     
-    
+    def je_float(self, vstup):
+        if vstup in (""):
+            return True
+        try:
+            float(vstup)
+            return True
+        except ValueError:
+            return False    
         
             
+            
+#TEST PAGE
+class TestPage(ScrollableFrame):
+    def __init__(self, parent, controller : 'MainController'):
+        super().__init__(parent)
+        self.config(bg="white")
+
+        
+        self.controler = controller
+        self.controler.set_test_page(self)                
+                  

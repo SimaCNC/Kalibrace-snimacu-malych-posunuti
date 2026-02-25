@@ -36,7 +36,7 @@ class KalibracniKrivkyData():
         
         self.alphaEMA = 1
         self.oknoSG = 11
-        self.exponent = 4
+        self.exponent = 1
                 
     def priradit_data(self,typ,jednotka):
         self.data_typ = typ
@@ -145,7 +145,9 @@ class KalibracniKrivkyData():
         #uprava filtrovane osy
         self.osa_filtrovane = []
         self.osa_filtrovane = self.blokove_hodnoty
+        self.zarovnej_osy()
         print(f"[{self.__class__.__name__}] filtrovane (prumer): {self.data_filtrovane}")
+        print("LEN X:", len(self.osa_filtrovane), "LEN Y:", len(self.data_filtrovane))
         
     def filtrovani_median(self):
         self.data_filtrovane = []
@@ -163,7 +165,9 @@ class KalibracniKrivkyData():
         #uprava filtrovane osy
         self.osa_filtrovane = []
         self.osa_filtrovane = self.blokove_hodnoty
+        self.zarovnej_osy()
         print(f"[{self.__class__.__name__}] filtrovane (median): {self.data_filtrovane}")
+        print("LEN X:", len(self.osa_filtrovane), "LEN Y:", len(self.data_filtrovane))
         
     def filtrovani_MA(self, okno=20):
         self.data_filtrovane=[]
@@ -171,14 +175,18 @@ class KalibracniKrivkyData():
         self.data_filtrovane = self.data_filtrovane.round(6).tolist()
         self.osa_filtrovane = []
         self.osa_filtrovane = self.data_x
+        self.zarovnej_osy()
         print(f"[{self.__class__.__name__}] filtrovane (MA): {self.data_filtrovane}")
+        print("LEN X:", len(self.osa_filtrovane), "LEN Y:", len(self.data_filtrovane))
         
     def filtrovani_EMA(self, okno = 20):
         self.data_filtrovane=[]
         self.data_filtrovane = self.data_y.ewm(span=okno, adjust=False).mean().round(6).tolist()
         self.osa_filtrovane = []
         self.osa_filtrovane = self.data_x
+        self.zarovnej_osy()
         print(f"[{self.__class__.__name__}] filtrovane (EMA): {self.data_filtrovane}")
+        print("LEN X:", len(self.osa_filtrovane), "LEN Y:", len(self.data_filtrovane))
         
     def filtrovani_SG(self, okno=11, poly=2):
         if self.data_y is None:
@@ -188,8 +196,10 @@ class KalibracniKrivkyData():
 
         self.data_filtrovane = filtrovane.round(6).tolist()
         self.osa_filtrovane = self.data_x[:len(self.data_filtrovane)]
+        self.zarovnej_osy()
 
         print(f"[{self.__class__.__name__}] filtrovane (S-G): {self.data_filtrovane}")
+        print("LEN X:", len(self.osa_filtrovane), "LEN Y:", len(self.data_filtrovane))
         
     def filtrovani_prumer_EMA(self):
         # self.filtrovani_prumer()
@@ -209,14 +219,22 @@ class KalibracniKrivkyData():
             self.data_filtrovane.append(round(prumer, 6))
 
         self.osa_filtrovane = self.blokove_hodnoty
+        self.zarovnej_osy()
         
-        print(f"[{self.__class__.__name__}] filtrovane (prumer+EMA): {self.data_filtrovane}") 
+        print(f"[{self.__class__.__name__}] filtrovane (prumer+EMA): {self.data_filtrovane}")
+        print("LEN X:", len(self.osa_filtrovane), "LEN Y:", len(self.data_filtrovane)) 
     
     def filtrovani_prumer_EMA_SG(self):
         self.filtrovani_prumer_EMA()
 
         self.data_filtrovane = savgol_filter(self.data_filtrovane, window_length=self.oknoSG, polyorder=self.exponent)
+        self.zarovnej_osy()
+        print("LEN X:", len(self.osa_filtrovane), "LEN Y:", len(self.data_filtrovane))
         print("alphaEMA:", self.alphaEMA, type(self.alphaEMA))
         print("oknoSG:", self.oknoSG, type(self.oknoSG))
         print("exponent:", self.exponent, type(self.exponent))
-        
+    
+    def zarovnej_osy(self):
+        n = min(len(self.data_filtrovane), len(self.osa_filtrovane))
+        self.data_filtrovane = list(self.data_filtrovane[:n])
+        self.osa_filtrovane = list(self.osa_filtrovane[:n])

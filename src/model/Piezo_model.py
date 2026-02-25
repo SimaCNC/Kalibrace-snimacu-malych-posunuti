@@ -11,6 +11,7 @@ class Piezo_model():
         self.piezo_serial = piezo_serial
         self.prostor = False
         self.pockej = False
+        self.automatika = False
         
         self.x = None
         self.y = None
@@ -108,6 +109,15 @@ class Piezo_model():
         
     def nastav_pohyb_piezo(self, pohyb):
         self.velikost_pohybu = pohyb 
+        
+    def nastav_zrychleni(self, zrychleni):
+        zrychleni = f"AC x{zrychleni} y{zrychleni} z{zrychleni};\n"
+        self.piezo_serial.send_msg_simple(zrychleni)
+        
+    def nastav_zpomaleni(self, zpomaleni):
+        zpomaleni = f"AC x{zpomaleni} y{zpomaleni} z{zpomaleni};\n"
+        self.piezo_serial.send_msg_simple(zpomaleni)
+        
         
     def pohyb_piezo(self, smer):
         
