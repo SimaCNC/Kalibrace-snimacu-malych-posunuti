@@ -608,7 +608,7 @@ class KalibraceGUI(LabelFrame):
         
         self.label_strategie = Label(self, text="Strategie kalibrace :", bg="white", width=20, anchor="w")
         self.label_strategie_vybrana = Label(self, text="N/A", bg ="white", width=30, anchor="w")
-        self.strategie = ["-", "Dopředná", "Zpětná","Opakovatelnost", "Hystereze", "Hystereze_2" ]
+        self.strategie = ["-", "Dopředná", "Zpětná","Opakovatelnost", "Hystereze", "Hystereze_2", "Kapacitní" ]
         self.vybrany_drop_strategie = StringVar()
         self.vybrany_drop_strategie.set("-")
         self.drop_strategie = OptionMenu(self, self.vybrany_drop_strategie, *self.strategie,command=lambda value: self.label_strategie_vybrana.config(text=value))

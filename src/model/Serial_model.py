@@ -21,7 +21,7 @@ class SerialCtrl():
     def SerialOpen(self, port, baud):
         try:
             if self.ser is None or not self.ser.is_open:
-                self.ser = serial.Serial(port=port, baudrate=baud, timeout=0.05) #TIMEOUT UPRAVEN z 0,1
+                self.ser = serial.Serial(port=port, baudrate=baud, timeout=0.1) #TIMEOUT UPRAVEN z 0,1
                 self.status = True
                 print(f"Port {port} byl otevren s baudratem {baud}")
                 

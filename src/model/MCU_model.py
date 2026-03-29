@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING
 import re
 import threading
 import math
+import time
 
 if TYPE_CHECKING:
     from model.Serial_model import SerialCtrl
@@ -45,6 +46,27 @@ class MCU_model():
         self.t1 = threading.Thread(target=msg_odpoved_thread, daemon=True)
         self.t1.start()
         
+    def msg_poslat_bez_odpovedi(self, msg):
+        self.mcu_serial.send_msg_simple(msg)    
+        
+    #cteni OK
+    def precist_ok(self, timeout=5.0):
+        """čeká na 'OK' od MCU"""
+        start = time.time()
+
+        while time.time() - start < timeout:
+            try:
+                data_raw = self.mcu_serial.ser.readline().decode(errors="ignore").strip()
+                print("RAW:", repr(data_raw))
+                if not data_raw:
+                    continue   
+                if "OK" in data_raw:
+                    return True
+            except Exception as e:
+                print(f"[{self.__class__.__name__}] {e} -- CHYBA!!")
+                break
+        return False
+
         
     def precti_teplotu(self):
         self.mcu_serial.send_msg_simple("#T")
@@ -65,55 +87,46 @@ class MCU_model():
         #vytvoreni zpravy pro n pocet mereni
         self.lock_frekvence = False
         self.mcu_serial.ser.reset_input_buffer()
-        
-        def cteni_frekvence():
             
+        def cteni_frekvence():
+                
             while len(self.frekvence_vzorky) < self.n:
                 try:
-                    #jeden prichozi vzorek
-                    data_raw = self.mcu_serial.ser.readline().decode().strip()
+                
+                    data_raw = self.mcu_serial.ser.readline().decode(errors="ignore").strip()
+                    print("RAW:", repr(data_raw))
+
+                    if not data_raw:
+                        continue
+                    
+                    if "F=" not in data_raw:
+                        continue
+                    
                     freq = self.dekodovat('f', data_raw)
                     teplota = self.dekodovat('t', data_raw)
                     tlak = self.dekodovat('p', data_raw)
                     vlhkost = self.dekodovat('h', data_raw)
                     osvetleni = self.dekodovat('l', data_raw)
-                    if freq is not None:
-                        self.frekvence_vzorky.append(freq)
-                    else:
-                        self.frekvence_vzorky.append(math.nan)
-                        print(f"[{self.__class__.__name__} příchozí frekvence: {freq} -- CHYBA!!]")
-                        
-                    if teplota is not None:
-                        self.teplota_vzorky.append(teplota)
-                    else:
-                        self.teplota_vzorky.append(math.nan)
 
-                    if tlak is not None:
-                        self.tlak_vzorky.append(tlak)
-                    else:
-                        self.tlak_vzorky.append(math.nan)
+                    self.frekvence_vzorky.append(freq)
+                    self.teplota_vzorky.append(teplota)
+                    self.tlak_vzorky.append(tlak)
+                    self.vlhkost_vzorky.append(vlhkost)
+                    self.osvetleni_vzorky.append(osvetleni)
 
-                    if vlhkost is not None:
-                        self.vlhkost_vzorky.append(vlhkost)
-                    else:
-                        self.vlhkost_vzorky.append(math.nan)
-                        
-                    if osvetleni is not None:
-                        self.osvetleni_vzorky.append(osvetleni)
-                    else:
-                        self.osvetleni_vzorky.append(math.nan)
-                      
                 except Exception as e:
                     print(f"[{self.__class__.__name__}] {e} -- CHYBA!!")
 
             self.lock_frekvence = True
-            
-            
+
+
+        msg = f"#D{self.n}"
+        self.mcu_serial.send_msg_simple(msg)
+
         self.t1 = threading.Thread(target=cteni_frekvence, daemon=True)
         self.t1.start()
         
-        msg = f"#D{self.n}"
-        self.mcu_serial.send_msg_simple(msg) 
+        
             
     #cteni napeti na AD pres UART, n je pocet mereni AD,napeti (=pocet vzorku)
     def precist_AD(self, pocet_vzorku : int):

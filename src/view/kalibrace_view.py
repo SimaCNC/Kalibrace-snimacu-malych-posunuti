@@ -88,7 +88,14 @@ class KalibracniOkno(Toplevel):
             self.controller.blok_widgets(self.controller.root)
             if self.controller.piezo_model.prostor == False:
                 self.window_exit()
-                return  
+                return 
+        
+        elif self.controller.protokol_gui.vybrane_var.get() == "2" and self.controller.kalibrace_gui.vybrany_drop_strategie.get() == "Kapacitní":
+            self.controller.kalibrace.kalibrace_start_pulzy_dopredna_kapacitni()
+            self.controller.blok_widgets(self.controller.root)
+            if self.controller.piezo_model.prostor == False:
+                self.window_exit()
+                return 
           
         #PROTOKOL    
         elif self.controller.protokol_gui.vybrane_var.get() == "3" and self.controller.kalibrace_gui.vybrany_drop_strategie.get() == "Dopředná":
@@ -110,7 +117,8 @@ class KalibracniOkno(Toplevel):
             print(f"[{self.__class__.__name__}] vybrané napětí")
           
         elif self.controller.protokol_gui.vybrane_var.get() == "2" and (self.controller.kalibrace_gui.vybrany_drop_strategie.get() == "Dopředná"or
-                                                                        self.controller.kalibrace_gui.vybrany_drop_strategie.get() == "Hystereze"):
+                                                                        self.controller.kalibrace_gui.vybrany_drop_strategie.get() == "Hystereze" or
+                                                                        self.controller.kalibrace_gui.vybrany_drop_strategie.get() == "Kapacitní") :
             self.ax.set_title("Závislost frekvence pulzů na vzdálenosti stěny od snímače")
             self.ax.set_xlabel("Vzdálenost (um)")
             self.ax.set_ylabel("Frekvence (Hz)")
@@ -128,7 +136,8 @@ class KalibracniOkno(Toplevel):
             self.after(500, self.aktualizace_graf_ad)
         
         elif self.controller.protokol_gui.vybrane_var.get() == "2" and (self.controller.kalibrace_gui.vybrany_drop_strategie.get() == "Dopředná" or
-                                                                        self.controller.kalibrace_gui.vybrany_drop_strategie.get() == "Hystereze"):                                                  
+                                                                        self.controller.kalibrace_gui.vybrany_drop_strategie.get() == "Hystereze"or
+                                                                        self.controller.kalibrace_gui.vybrany_drop_strategie.get() == "Kapacitní"):                                                  
             self.after(500, self.aktualizace_graf_frekvence)
             
         #SPUSTENI FUNKCE ZA 500ms SE FUNKCE PRO AKTUALIZACI GRAFU
