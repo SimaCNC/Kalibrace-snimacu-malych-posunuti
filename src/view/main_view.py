@@ -47,7 +47,7 @@ class RootGUI():
         self.menu.add_command(label="Kalibrace", command=lambda: self.show_frame("kalibrace"))
         self.menu.add_command(label="Data", command=lambda : self.show_frame("data"))
         self.menu.add_command(label="Kalibrační křivky", command=lambda : self.show_frame("kalibrační křivky"))
-        self.menu.add_command(label="Test", command= lambda : self.show_frame("test"))
+        # self.menu.add_command(label="Test", command= lambda : self.show_frame("test"))
         self.menu.add_command(label="Nápověda", command=lambda : webbrowser.open('https://github.com/SimaCNC/Kalibrace-snimacu-malych-posunuti'))
         self.menu.add_command(label="Konec", command=self.window_exit)
         

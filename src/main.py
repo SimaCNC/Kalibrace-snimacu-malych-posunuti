@@ -3,6 +3,9 @@ from view.main_view import RootGUI
 from model.Piezo_model import Piezo_model
 from model.MCU_model import MCU_model
 from model.Serial_model import SerialCtrl
+"""
+    MAIN
+"""
 
 #-----MODEL---- M
 piezo_serial = SerialCtrl()

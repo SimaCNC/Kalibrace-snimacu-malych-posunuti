@@ -1,7 +1,21 @@
-MyModule
+MAIN
 ========
 
 .. automodule:: main
     :members:
     :undoc-members:
     :show-inheritance:
+
+View
+====
+
+.. automodule:: view.kalibrace_view
+    :members:
+
+.. automodule:: view.main_view
+    :members:
+
+Model
+=====
+.. automodule:: model.KalibracniKrivky_model.py
+    
